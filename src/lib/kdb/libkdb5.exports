@@ -13,7 +13,6 @@ krb5_db_delete_principal
 krb5_db_destroy
 krb5_db_fetch_mkey
 krb5_db_fetch_mkey_list
-krb5_db_free_mkey_list
 krb5_db_fini
 krb5_db_free_principal
 krb5_db_get_age
