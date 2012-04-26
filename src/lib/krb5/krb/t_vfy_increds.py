@@ -39,9 +39,26 @@ realm.run_as_server(['./t_vfy_increds'])
 realm.run_kadminl('change_password -randkey ' + realm.host_princ)
 realm.run_as_server(['./t_vfy_increds'], expected_code=1)
 
+# Simulate a system where the hostname has changed and the keytab contains host
+# service princs with a hostname that no longer matches.  Verify after updating
+# the keytab with a host service princ that has hostname that doesn't match the
+# host running the test.  Verify should succeed.
+realm.run_kadminl('addprinc -randkey host/thisisbogus.com@' + realm.realm)
+realm.run_kadminl('ktadd host/thisisbogus.com@' + realm.realm)
+realm.run_as_server(['./t_vfy_increds'])
+
 # Remove the keytab and verify again.  This should succeed because
 # verify_ap_req_nofail is not set.
 os.remove(realm.keytab)
+realm.run_as_server(['./t_vfy_increds'])
+
+# add a nfs service princ to keytab, verify should succeed.
+realm.run_kadminl('addprinc -randkey ' + realm.nfs_princ)
+realm.run_kadminl('ktadd ' + realm.nfs_princ)
+realm.run_as_server(['./t_vfy_increds'])
+# Make sure the nfs service princ is ignored by invalidating the keys in the
+# keytab.  Verify should succeed.
+realm.run_kadminl('change_password -randkey ' + realm.nfs_princ)
 realm.run_as_server(['./t_vfy_increds'])
 
 # Try with verify_ap_req_nofail set and no keytab.  This should fail.
@@ -49,6 +66,11 @@ realm.stop()
 conf = { 'server' : { 'libdefaults' : { 'verify_ap_req_nofail' : 'true' } } }
 realm = K5Realm(krb5_conf=conf)
 os.remove(realm.keytab)
+realm.run_as_server(['./t_vfy_increds'], expected_code=1)
+
+# add a nfs service princ to keytab, verify should fail.
+realm.run_kadminl('addprinc -randkey ' + realm.nfs_princ)
+realm.run_kadminl('ktadd ' + realm.nfs_princ)
 realm.run_as_server(['./t_vfy_increds'], expected_code=1)
 
 success('krb5_verify_init_creds tests')
